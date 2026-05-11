@@ -32,3 +32,13 @@ pairs.panels(
   density = TRUE,
   ellipses = TRUE
 )
+
+# Save correlation matrix output
+sink("output/multivariate_results.txt")
+
+cor(
+  nhanes_clean[, c("RIDAGEYR", "BMXWT", "BMXHT", "BMXBMI")],
+  use = "complete.obs"
+)
+
+sink()
