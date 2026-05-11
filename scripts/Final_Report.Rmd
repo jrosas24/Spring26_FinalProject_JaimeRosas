@@ -1,0 +1,73 @@
+---
+title: "Final Report"
+output: html_document
+---
+
+# Introduction
+
+This project analyzes NHANES public health data to examine relationships between BMI, physical activity, sex, education level, height, and weight among adults in the United States.
+
+# Data Cleaning
+
+The datasets were imported from NHANES XPT files and merged using the SEQN identifier. Missing values were removed and categorical variables were recoded into readable labels.
+
+# Visualizations
+
+```{r}
+library(readr)
+library(ggplot2)
+library(dplyr)
+
+nhanes_clean <- read.csv("../data/cleaned_nhanes.csv")
+
+ggplot(
+  nhanes_clean,
+  aes(x = BMXHT, y = BMXWT, color = Activity_Level)
+) +
+  geom_point(alpha = 0.6) +
+  labs(
+    title = "Height vs Weight by Physical Activity Level",
+    x = "Height (cm)",
+    y = "Weight (kg)"
+  )
+```
+
+# Statistical Analysis
+
+```{r}
+library(dplyr)
+
+nhanes_clean %>%
+  group_by(Activity_Level) %>%
+  summarise(
+    Mean_BMI = mean(BMXBMI, na.rm = TRUE),
+    SD_BMI = sd(BMXBMI, na.rm = TRUE),
+    Count = n()
+  )
+```
+
+# ANOVA Test
+
+```{r}
+anova_result <- aov(BMXBMI ~ Activity_Level, data = nhanes_clean)
+
+summary(anova_result)
+```
+
+# Multivariate Analysis
+
+```{r}
+library(psych)
+
+pairs.panels(
+  nhanes_clean[, c("RIDAGEYR", "BMXWT", "BMXHT", "BMXBMI")],
+  method = "pearson",
+  hist.col = "lightblue",
+  density = TRUE,
+  ellipses = TRUE
+)
+```
+
+# Conclusion
+
+The analysis showed relationships between physical activity level and BMI. Visualizations and statistical testing demonstrated differences across activity levels, sex, and education categories. Multivariate analysis also showed correlations among age, BMI, height, and weight variables.
