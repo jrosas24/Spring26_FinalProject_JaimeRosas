@@ -60,3 +60,4 @@ ggplot(
     y = "BMI",
     fill = "Activity Level"
   )
+ggsave("output/bmi_activity_sex.png")
