@@ -1,0 +1,16 @@
+                 Df Sum Sq Mean Sq F value  Pr(>F)   
+Activity_Level    2    564  281.93    4.92 0.00732 **
+Residuals      8339 477888   57.31                   
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+  Tukey multiple comparisons of means
+    95% family-wise confidence level
+
+Fit: aov(formula = BMXBMI ~ Activity_Level, data = nhanes_clean)
+
+$Activity_Level
+                                           diff         lwr       upr     p adj
+Moderate Activity-Low Activity       0.54173176  0.05334370 1.0301198 0.0252935
+Vigorous Activity-Low Activity       0.49962398  0.02817681 0.9710712 0.0347265
+Vigorous Activity-Moderate Activity -0.04210778 -0.60401267 0.5197971 0.9831325
+
