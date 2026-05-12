@@ -5,21 +5,95 @@ output: html_document
 
 # Introduction
 
-This project analyzes NHANES public health data to examine relationships between BMI, physical activity, sex, education level, height, and weight among adults in the United States.
+This project analyzes NHANES public health data to examine the relationship between body mass index (BMI), physical activity, sex, education level, height, and weight among adults in the United States.
+
+The research question for this project is: **Is there a significant difference in BMI across physical activity levels among U.S. adults?**
+
+The null hypothesis is that there is no significant difference in mean BMI across physical activity levels. The alternative hypothesis is that there is a significant difference in mean BMI across physical activity levels.
 
 # Data Cleaning
 
-The datasets were imported from NHANES XPT files and merged using the SEQN identifier. Missing values were removed and categorical variables were recoded into readable labels.
+The NHANES datasets were imported into RStudio and merged using the participant identification variable `SEQN`. The datasets included demographic data, body measurement data, and physical activity questionnaire data.
+
+Relevant variables were selected, including age, sex, education level, BMI, height, weight, and physical activity variables. Missing values were removed, and invalid responses were filtered out. Categorical variables were recoded into readable labels such as Male, Female, Low Activity, Moderate Activity, and Vigorous Activity.
+
+```{r}
+library(haven)
+library(dplyr)
+library(ggplot2)
+
+demo <- read_xpt("../data/P_DEMO (5).xpt")
+bmx  <- read_xpt("../data/P_BMX.xpt")
+paq  <- read_xpt("../data/P_PAQ.xpt")
+
+nhanes <- demo %>%
+  inner_join(bmx, by = "SEQN") %>%
+  inner_join(paq, by = "SEQN")
+
+nhanes_clean <- nhanes %>%
+  select(SEQN, RIAGENDR, RIDAGEYR, RIDRETH3, DMDEDUC2,
+         BMXBMI, BMXWT, BMXHT, PAQ605, PAQ620, PAD680) %>%
+  filter(RIDAGEYR >= 18) %>%
+  filter(!is.na(BMXBMI),
+         !is.na(BMXWT),
+         !is.na(BMXHT),
+         !is.na(PAQ605),
+         !is.na(PAQ620),
+         !is.na(PAD680)) %>%
+  filter(RIAGENDR %in% c(1, 2),
+         DMDEDUC2 %in% c(1, 2, 3, 4, 5),
+         PAQ605 %in% c(1, 2),
+         PAQ620 %in% c(1, 2)) %>%
+  mutate(
+    Sex = factor(RIAGENDR, levels = c(1, 2),
+                 labels = c("Male", "Female")),
+    Education = factor(DMDEDUC2,
+                       levels = c(1, 2, 3, 4, 5),
+                       labels = c("Less than 9th grade",
+                                  "9th-11th grade",
+                                  "High school graduate",
+                                  "Some college/AA",
+                                  "College graduate or above")),
+    Activity_Level = case_when(
+      PAQ605 == 1 ~ "Vigorous Activity",
+      PAQ605 == 2 & PAQ620 == 1 ~ "Moderate Activity",
+      PAQ605 == 2 & PAQ620 == 2 ~ "Low Activity"
+    ),
+    Activity_Level = factor(Activity_Level,
+                            levels = c("Low Activity",
+                                       "Moderate Activity",
+                                       "Vigorous Activity"))
+  )
+```
+
+# Descriptive Statistics
+
+```{r}
+nhanes_clean %>%
+  summarise(
+    Mean_BMI = mean(BMXBMI, na.rm = TRUE),
+    Median_BMI = median(BMXBMI, na.rm = TRUE),
+    SD_BMI = sd(BMXBMI, na.rm = TRUE),
+    Mean_Age = mean(RIDAGEYR, na.rm = TRUE),
+    Median_Age = median(RIDAGEYR, na.rm = TRUE),
+    SD_Age = sd(RIDAGEYR, na.rm = TRUE),
+    Mean_Weight = mean(BMXWT, na.rm = TRUE),
+    Median_Weight = median(BMXWT, na.rm = TRUE),
+    SD_Weight = sd(BMXWT, na.rm = TRUE)
+  )
+```
+
+```{r}
+table(nhanes_clean$Sex)
+table(nhanes_clean$Education)
+table(nhanes_clean$Activity_Level)
+```
 
 # Visualizations
 
+## Visualization 1: Height and Weight by Physical Activity Level
+
 ```{r}
-library(readr)
-library(ggplot2)
-library(dplyr)
-
-nhanes_clean <- read.csv("../data/cleaned_nhanes.csv")
-
 ggplot(
   nhanes_clean,
   aes(x = BMXHT, y = BMXWT, color = Activity_Level)
@@ -28,31 +102,83 @@ ggplot(
   labs(
     title = "Height vs Weight by Physical Activity Level",
     x = "Height (cm)",
-    y = "Weight (kg)"
+    y = "Weight (kg)",
+    color = "Activity Level"
   )
 ```
 
-# Statistical Analysis
+This scatterplot shows the relationship between height and weight while also displaying differences by physical activity level.
+
+## Visualization 2: BMI Distribution by Physical Activity Level
 
 ```{r}
-library(dplyr)
-
-nhanes_clean %>%
-  group_by(Activity_Level) %>%
-  summarise(
-    Mean_BMI = mean(BMXBMI, na.rm = TRUE),
-    SD_BMI = sd(BMXBMI, na.rm = TRUE),
-    Count = n()
+ggplot(
+  nhanes_clean,
+  aes(x = BMXBMI, fill = Activity_Level)
+) +
+  geom_histogram(bins = 30, alpha = 0.7, position = "identity") +
+  labs(
+    title = "BMI Distribution by Physical Activity Level",
+    x = "BMI",
+    y = "Count",
+    fill = "Activity Level"
   )
 ```
 
-# ANOVA Test
+This histogram shows how BMI values are distributed across different physical activity levels.
+
+## Visualization 3: BMI by Physical Activity Level
+
+```{r}
+ggplot(
+  nhanes_clean,
+  aes(x = Activity_Level, y = BMXBMI, fill = Activity_Level)
+) +
+  geom_boxplot() +
+  labs(
+    title = "BMI by Physical Activity Level",
+    x = "Physical Activity Level",
+    y = "BMI",
+    fill = "Activity Level"
+  )
+```
+
+This boxplot compares BMI values across low, moderate, and vigorous activity groups.
+
+## Visualization 4: BMI by Activity Level and Sex
+
+```{r}
+ggplot(
+  nhanes_clean,
+  aes(x = Activity_Level, y = BMXBMI, fill = Activity_Level)
+) +
+  geom_boxplot() +
+  facet_wrap(~ Sex) +
+  labs(
+    title = "BMI by Physical Activity Level and Sex",
+    x = "Physical Activity Level",
+    y = "BMI",
+    fill = "Activity Level"
+  )
+```
+
+This multivariate visualization compares BMI across activity levels while separating results by sex.
+
+# Inferential Statistics
+
+A one-way ANOVA test was used to compare mean BMI across the three physical activity groups.
 
 ```{r}
 anova_result <- aov(BMXBMI ~ Activity_Level, data = nhanes_clean)
 
 summary(anova_result)
 ```
+
+```{r}
+TukeyHSD(anova_result)
+```
+
+The ANOVA test was used because BMI is a quantitative variable and physical activity level has three categories. This test helps determine whether mean BMI differs significantly across the activity groups.
 
 # Multivariate Analysis
 
@@ -68,6 +194,18 @@ pairs.panels(
 )
 ```
 
+The multivariate correlation plot shows relationships among age, weight, height, and BMI.
+
+# Discussion
+
+The visualizations and statistical analysis suggest that BMI differs across physical activity levels. The boxplots show visible differences in BMI distributions among low, moderate, and vigorous activity groups. The ANOVA test was used to formally test whether these differences were statistically significant.
+
+These findings are important in public health because physical activity is an important factor related to weight status and chronic disease prevention. Higher physical activity levels are often connected to healthier body weight outcomes.
+
+One limitation of this project is that NHANES data are cross-sectional, meaning the results show associations but cannot prove cause and effect. Another limitation is that physical activity responses may be self-reported, which can lead to reporting bias.
+
 # Conclusion
 
-The analysis showed relationships between physical activity level and BMI. Visualizations and statistical testing demonstrated differences across activity levels, sex, and education categories. Multivariate analysis also showed correlations among age, BMI, height, and weight variables.
+This project used NHANES data and RStudio to analyze the relationship between BMI and physical activity levels among U.S. adults. The project included data cleaning, descriptive statistics, visualizations, ANOVA testing, and multivariate analysis.
+
+Overall, the results suggest that physical activity level is related to BMI. The project demonstrates how public health data can be cleaned, analyzed, visualized, and interpreted using R.
