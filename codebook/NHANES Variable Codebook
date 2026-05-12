@@ -1,0 +1,14 @@
+NHANES Variable Codebook
+
+SEQN = Respondent ID
+RIAGENDR = Gender
+RIDAGEYR = Age in years
+RIDRETH3 = Race/Ethnicity
+DMDEDUC2 = Education Level
+BMXBMI = Body Mass Index
+BMXWT = Weight (kg)
+BMXHT = Height (cm)
+PAQ605 = Moderate Activity
+PAQ620 = Vigorous Activity
+PAD680 = Minutes Sedentary
+Activity_Level = Created activity category variable
